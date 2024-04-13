@@ -21,7 +21,7 @@ characteristics = {
     ]
 }
 
-big_N = 5000
+big_N = 1000
 big_pool = range(big_N)
 characteristics["big"] = [
     [random.random() for _ in range(big_N)],
