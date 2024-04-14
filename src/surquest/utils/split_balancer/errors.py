@@ -57,3 +57,11 @@ class InvalidGroupSizeError(SplitBalancerError):
         self.pool_size = pool_size
         message = f"Invalid group size: Group size ({self.group_size}) is smaller than 1 or greater than the amount of units in the pool ({self.pool_size}) - 1."
         super().__init__(message)   
+
+
+class NoOptimalSolutionError(SplitBalancerError):
+    """Exception raised when there is no optimal solution to the split balancing problem."""
+
+    def __init__(self):
+
+        super().__init__("No optimal solution: There is no optimal solution to the split balancing problem.")

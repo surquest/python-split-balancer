@@ -57,3 +57,33 @@ docker run --rm -it `
  -w "/opt/project/test" `
  surquest/surquest/split-balancer:latest pytest
 ```
+
+
+# REST API Quick Start
+
+```powershell
+
+# Build the docker image
+
+docker build `
+     --no-cache `
+     --tag surquest/app-split-balancer:latest `
+     --file app.base.dockerfile `
+     --target base .
+
+docker build `
+     --no-cache `
+     --tag python/instore/pmp-integration-proxy `
+     --file app.base.dockerfile `
+     --target app .
+
+# Run the docker container
+docker run --rm -it `
+    --name pmp-integration-proxy `
+    -v "$(pwd):/opt/project" `
+    -p 1010:8080 surquest/app-split-balancer:latest
+
+docker run --rm -it `
+    --name pmp-integration-proxy `
+    -p 1010:8080 python/instore/pmp-integration-proxy
+```

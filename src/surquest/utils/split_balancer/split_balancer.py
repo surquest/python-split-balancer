@@ -2,30 +2,31 @@
 
 """
 
-from ortools.linear_solver import pywraplp
+from ortools.math_opt.python import mathopt
+from ortools.math_opt.python.ipc import remote_http_solve
+from datetime import datetime, timedelta
+from surquest.utils.split_balancer.errors import *
 import numpy as np
 import logging
 
-from .errors import *
 
 class SplitBalancer:
-    """
+    """Class to balance the split of units into two groups based on their characteristics. 
     """
 
     def __init__(
-            self, 
-            pool: list, 
-            characteristics: list,
-            target_group_size: int,
-            control_group_size: int,
-            in_target_group: list | None = None,
-            in_control_group: list | None = None,
-            out_target_group: list | None = None,
-            out_control_group: list | None = None,
-            model_type: str = "CP-SAT",
-            groups: list = ["target", "control", "unassigned"]
+        self,
+        pool: list,
+        characteristics: list,
+        target_group_size: int,
+        control_group_size: int,
+        in_target_group: list | None = None,
+        in_control_group: list | None = None,
+        out_target_group: list | None = None,
+        out_control_group: list | None = None
+        # model_type: str = "CP-SAT", # "SCIP", # "GLOP", #"CP-SAT",
+        # groups: list = ["target", "control", "unassigned"]
     ):
-        
         """Initializes the SplitBalancer class.
 
         Args:
@@ -33,20 +34,21 @@ class SplitBalancer:
             characteristics (list of list): An array of the characteristics of the units.
             target_group_size (int): The size of the target group.
             control_group_size (int): The size of the control group.
-            in_target_group (list): A list of the units in the target group.
-            in_control_group (list): A list of the units in the control group.
-            out_target_group (list): A list of the units not in the target group.
-            out_control_group (list): A list of the units not in the control group.
-
+            in_target_group (list): A list of the units that must be in the target group.
+            in_control_group (list): A list of the units that must be in the control group.
+            out_target_group (list): A list of the units that must be out ofthe target group.
+            out_control_group (list): A list of the units that must be out the control group.
         """
 
         # Validate the input
 
         # Check if the pool has enough units
         if len(pool) < target_group_size + control_group_size:
-            
-            raise InsufficientUnitsError(len(pool), target_group_size, control_group_size)
-        
+
+            raise InsufficientUnitsError(
+                len(pool), target_group_size, control_group_size
+            )
+
         # Check if the same units are in both the target and control groups
         if in_target_group is not None and in_control_group is not None:
 
@@ -63,8 +65,8 @@ class SplitBalancer:
 
             if len(overlapping_units) > 0:
 
-                raise DuplicateUnitsError(overlapping_units, "target") 
-            
+                raise DuplicateUnitsError(overlapping_units, "target")
+
         # Check if the same units are required to be in as well as out of the control
         if out_control_group is not None and in_control_group is not None:
 
@@ -73,12 +75,12 @@ class SplitBalancer:
             if len(overlapping_units) > 0:
 
                 raise DuplicateUnitsError(overlapping_units, "control")
-            
+
         # Check if the group size is smaller than 1 or greater than the amount of units in the pool - 1
         if target_group_size < 1 or target_group_size > len(pool) - 1:
 
             raise InvalidGroupSizeError(target_group_size, len(pool))
-        
+
         if control_group_size < 1 or control_group_size > len(pool) - 1:
 
             raise InvalidGroupSizeError(control_group_size, len(pool))
@@ -92,9 +94,6 @@ class SplitBalancer:
         self.out_target_group = out_target_group
         self.out_control_group = out_control_group
 
-        self.model_type = model_type
-        self.groups = groups
-
         # Log inputs
         logging.info(f"Pool: {self.pool}")
         logging.info(f"Characteristics: {self.characteristics}")
@@ -104,145 +103,235 @@ class SplitBalancer:
         logging.info(f"In control group: {self.in_control_group}")
         logging.info(f"Out target group: {self.out_target_group}")
         logging.info(f"Out control group: {self.out_control_group}")
-        logging.info(f"Model type: {self.model_type}")
-        logging.info(f"Groups: {self.groups}")
+
+        self.groups = ["target", "control", "unassigned"]
 
 
-
-    def _get_model(self):
+    def _get_model(self, integer_only=False):
         """Method to create the optimization model.
 
         Returns:
             pywraplp.Solver: The optimization model.
         """
 
-        solver = pywraplp.Solver.CreateSolver(self.model_type)
+        pool = self.pool
+        groups = self.groups
+        target_group_size = self.target_group_size
+        control_group_size = self.control_group_size
+        in_target_group = self.in_target_group
+        in_control_group = self.in_control_group
+        out_target_group = self.out_target_group
+        out_control_group = self.out_control_group
 
-        # Define the variables
-        dx = solver.NumVar(0, 1, "dx")
+        # Create the optimization model
+        model = mathopt.Model(name="split_balancer")
+
+        # Define variables
+
+        if integer_only is True:
+            b = model.add_variable(is_integer=True, name="b")
+        else:
+            b = model.add_variable(name="b")
+
         x = {}
-        for i in self.pool:
-            for j in self.groups:
-                x[(i,j)] = solver.IntVar(0, 1, f"x_{i}_{j}")
+        for i in pool:
+            for j in groups:
+                x[(i, j)] = model.add_variable(lb=0, ub=1, is_integer=True, name=f"x_{i}_{j}")
 
-        # Define the constraints
-        for i in self.pool:
-            solver.Add(sum(x[(i,j)] for j in self.groups) == 1)
+
+        # Define constraints
+
+        # Each unit from the pool needs to be assigned into one group
+        for i in pool:
+            model.add_linear_constraint(
+                sum(x[(i, j)] for j in groups) == 1
+            )
 
         # Define the target group size constraint
-        solver.Add(sum(x[(i,self.groups[0])] for i in self.pool) == self.target_group_size)
+        model.add_linear_constraint(
+            sum(x[(i, groups[0])] for i in pool) == target_group_size
+        )
 
         # Define the control group size constraint
-        solver.Add(sum(x[(i,self.groups[1])] for i in self.pool) == self.control_group_size)
+        model.add_linear_constraint(
+            sum(x[(i, groups[1])] for i in pool) == control_group_size
+        )
+
+        # simple_char = self.simplify_characteristics(self.characteristics)
+        simple_char = self.characteristics[0]
+
+        if integer_only is True:
+          const = 10000
+          coef = int(target_group_size/control_group_size)*const
+
+          avg_target_char = sum(
+              x[(i, "target")]*simple_char[idx] for idx, i in enumerate(pool)
+          )*const
+
+          avg_control_char = sum(
+              x[(i, "control")]*simple_char[idx] for idx, i in enumerate(pool)
+          )*coef
+
+        else:
+        
+          avg_target_char = sum(
+              x[(i, "target")]*simple_char[idx] for idx, i in enumerate(pool)
+          )/target_group_size
+
+          avg_control_char = sum(
+              x[(i, "control")]*simple_char[idx] for idx, i in enumerate(pool)
+          )/control_group_size
+
+        # Define the distance constraint
+        model.add_linear_constraint(
+            avg_target_char - avg_control_char <= b
+        )
+
+        model.add_linear_constraint(
+            avg_control_char - avg_target_char <= b
+        )
 
         # Define the in target group constraint
         if self.in_target_group is not None:
             for i in self.in_target_group:
-                solver.Add(x[(i,self.groups[0])] == 1)
+                model.add_linear_constraint(x[(i, self.groups[0])] == 1)
 
         # Define the in control group constraint
         if self.in_control_group is not None:
             for i in self.in_control_group:
-                solver.Add(x[(i,self.groups[1])] == 1)
+                model.add_linear_constraint(x[(i, self.groups[1])] == 1)
 
         # Define the out target group constraint
         if self.out_target_group is not None:
             for i in self.out_target_group:
-                solver.Add(x[(i,self.groups[0])] == 0)
+                model.add_linear_constraint(x[(i, self.groups[0])] == 0)
 
         # Define the out control group constraint
         if self.out_control_group is not None:
             for i in self.out_control_group:
-                solver.Add(x[(i,self.groups[1])] == 0)
+                model.add_linear_constraint(x[(i, self.groups[1])] == 0)
 
-        
-        # Define avg characteristics for each group
-        avg = {
-            "target": [],
-            "control": []
-        }
+        model.minimize(b)
 
-        n_characteristics = len(self.characteristics)
-        logging.info(f"Number of characteristics: {n_characteristics}")
+        return model, x, b
 
-        for ch in range(n_characteristics):
-
-            avg["target"].append(
-                solver.Sum(x[val,self.groups[0]]*self.characteristics[ch][idx] for idx, val in enumerate(self.pool))/self.target_group_size
-                )
-            avg["control"].append(
-                solver.Sum(x[val,self.groups[1]]*self.characteristics[ch][idx] for idx, val in enumerate(self.pool))/self.control_group_size
-                )
-            
-            print(":> ch", ch)
-
-        # Define sum of avg characteristics for each group
-        total_avg_target = solver.Sum(avg["target"][ch] for ch in range(n_characteristics))
-        total_avg_control = solver.Sum(avg["control"][ch] for ch in range(n_characteristics))
-
-        solver.Add(total_avg_target - total_avg_control <= dx)
-        solver.Add(total_avg_control - total_avg_target <= dx)
-
-        solver.Minimize(dx)
-
-        return solver, x, dx
-
-
-    def solve(self):
+    def solve(self, integer_only=False, limit=180, remote=False, api_key=None):
         """Method to solve the optimization model.
 
+        Args:
+            limit (int): The time limit for the optimization model. (default is 60 seconds)
+            remote (bool): Whether to solve the optimization model remotely. (default is False)
+            api_key (str): The API key for the remote solver. (default is None)
         Returns:
             dict: A dictionary with the units in each group.
         """
 
-        groups = {
-            "target": [],
-            "control": [],
-            "unassigned": []
-        }
+        groups = {"target": [], "control": [], "unassigned": []}
 
-        solver, x, dx = self._get_model()
+        model, x, b = self._get_model(integer_only=integer_only)
+        params = mathopt.SolveParameters(time_limit=timedelta(seconds=limit))
 
-        status = solver.Solve()
+        # Solve the optimization model
+        if remote is True:
+            api_key = api_key
+            result, logs = remote_http_solve.remote_http_solve(
+                model, 
+                mathopt.SolverType.CP_SAT, 
+                api_key=api_key
+                # ToDO: add SolveParameters
+            )
 
-        if status == pywraplp.Solver.OPTIMAL:
+        else:
+            result = mathopt.solve(
+                model,
+                mathopt.SolverType.CP_SAT,
+                params=params
+            )
+
+        if result.termination.reason == mathopt.TerminationReason.OPTIMAL \
+           or result.termination.reason == mathopt.TerminationReason.FEASIBLE:
+
+            vec = {
+                "target": np.array([result.variable_values()[x[(i, self.groups[0])]] for i in self.pool]),
+                "control": np.array([result.variable_values()[x[(i, self.groups[1])]] for i in self.pool]),
+                "unassigned": np.array([result.variable_values()[x[(i, self.groups[2])]] for i in self.pool])
+            }
 
             # Get units in target and control groups
             for i in self.pool:
                 for j in self.groups:
-                    if x[(i,j)].solution_value() == 1:
+                    if result.variable_values()[x[(i, j)]] == 1:
                         groups[j].append(i)
-            
-
-            # Get vector of target and control variables
-            vec_target = np.array([x[(i,self.groups[0])].solution_value() for i in self.pool])
-            vec_control = np.array([x[(i,self.groups[1])].solution_value() for i in self.pool])
 
             # Get avg characteristics for each group
-            avg = {
-                "target": [],
-                "control": []
-            }
+            avg = {"characteristics": [], "total": None}
 
             n_characteristics = len(self.characteristics)
 
             for ch in range(n_characteristics):
 
                 vec_characteristics = np.array(self.characteristics[ch])
-                        
-                avg["target"].append(
-                    np.dot(vec_target, vec_characteristics)/self.target_group_size
-                    )
-                avg["control"].append(
-                     np.dot(vec_control, vec_characteristics)/self.control_group_size
-                    )
+
+                char_avg = {
+                    "target": np.dot(vec.get("target"), vec_characteristics)
+                    / self.target_group_size,
+                    "control": np.dot(vec.get("control"), vec_characteristics)
+                    / self.control_group_size,
+                }
+
+                avg["characteristics"].append(char_avg)
+
+            # Get total avg characteristics
+            avg["total"] = {
+                "cf": result.variable_values()[b],
+                "target": np.sum(
+                    [
+                        avg["characteristics"][ch]["target"]
+                        for ch in range(n_characteristics)
+                    ]
+                ),
+                "control": np.sum(
+                    [
+                        avg["characteristics"][ch]["control"]
+                        for ch in range(n_characteristics)
+                    ]
+                ),
+            }
 
         else:
+
             logging.error("The problem does not have an optimal solution.")
-            return None
+            raise NoOptimalSolutionError()
+
+        return {"stats": avg, "assignments": groups}
+
+    @staticmethod
+    def simplify_characteristics(characteristics, do_rescale=True, scale=1):
+        """Method to simplify the characteristics of the units.
+        to a single vector with values between 0 and 1.
+
+        Args:
+            characteristics (list of list): The characteristics of the units.
+            do_rescale (bool): Whether to rescale (integers in rage 0 and 1000) the characteristics. 
+
+        Returns:
+            list: The simplified characteristics of the units.
+        """
+
+        # Get an avarage of each characteristics
+        matrix = np.array(characteristics)
         
-        logging.info(f"Groups: {groups}")
-        return {
-            "assignments": groups,
-            "stats": avg
-        }
+        # Calculate the mean for each characteristic (column)
+        average_unit = np.mean(matrix, axis=1)
+
+        # Calculate the distance of each unit from the average unit
+        distances = np.linalg.norm(
+            np.transpose(matrix) - average_unit, 
+            axis=1
+        )
+
+        if do_rescale:
+            # Rescale the distances between 0 and scale
+            distances = np.multiply(distances, scale).astype(int)
+
+        return distances

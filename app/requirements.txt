@@ -1,0 +1,7 @@
+uvicorn==0.29.0
+fastapi==0.110.1
+requests
+
+# surquest packages
+surquest-split-balancer>=0.0.3
+surquest-fastapi-utils==0.2.6

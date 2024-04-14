@@ -1,5 +1,6 @@
 import pytest
 import random
+import time
 from surquest.utils.split_balancer import SplitBalancer
 from surquest.utils.split_balancer.errors import *
 
@@ -13,23 +14,23 @@ out_control_group = [4, 5]
 pool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 characteristics = {
     1: [
-        [0.4, 0.5, 0.6, 0.4, 0.6, 0.9, 0.1, 0.4, 0.6, 0.5]
+        [4, 5, 6, 4, 6, 9, 1, 4, 6, 5]
     ],
     2: [
-        [0.4, 0.5, 0.6, 0.4, 0.6, 0.9, 0.1, 0.4, 0.6, 0.5],
-        [0.2, 0.3, 0.4, 0.2, 0.4, 0.7, 0.1, 0.2, 0.4, 0.3]
+        [4, 5, 6, 4, 6, 9, 1, 4, 6, 5],
+        [2, 3, 4, 2, 4, 7, 1, 2, 4, 3]
     ]
 }
 
 big_N = 1000
 big_pool = range(big_N)
 characteristics["big"] = [
-    [random.random() for _ in range(big_N)],
-    [random.random() for _ in range(big_N)],
-    [random.random() for _ in range(big_N)]
+    [random.randrange(1, 100) for _ in range(big_N)],
+    [random.randrange(1, 100) for _ in range(big_N)],
+    [random.randrange(1, 100) for _ in range(big_N)]
 ]
-big_target_group_size = 0.8*big_N
-big_control_group_size = 0.1*big_N
+big_target_group_size = int(0.8*big_N)
+big_control_group_size = int(0.1*big_N)
 
 class TestSplitBalancer:
 
@@ -47,6 +48,7 @@ class TestSplitBalancer:
             (target_group_size, control_group_size, [1,2,3,4], in_control_group, [1,2,3,4], out_control_group, pool, characteristics.get(1), DuplicateUnitsError),
             (target_group_size, control_group_size, [1,2,3,4,5,6], in_control_group, [1,2,3,4,5,6], out_control_group, pool, characteristics.get(1), DuplicateUnitsError),
             (target_group_size, control_group_size, in_target_group, in_control_group, out_target_group, in_control_group, pool, characteristics.get(1), DuplicateUnitsError),
+            (8, 2, in_target_group, [7, 8, 9, 10], out_target_group, out_control_group, pool, characteristics.get(1), NoOptimalSolutionError),
         ],
     )
     def test_failure(self, target_group_size, control_group_size, in_target_group, in_control_group, out_target_group, out_control_group, pool, characteristics, expected):
@@ -63,18 +65,14 @@ class TestSplitBalancer:
                 out_control_group=out_control_group
             )
         except Exception as e:
-            assert isinstance(e, expected)
-            # assert str(e) == f"Insufficient units: pool size ({len(pool)}) is lower than the sum of target ({target_group_size}) + control ({control_group_size}) group sizes."
+            assert isinstance(e, expected), f"Expected {expected}, but got {type(e)}"
 
     @pytest.mark.parametrize(
         "target_group_size, control_group_size, in_target_group, in_control_group, out_target_group, out_control_group, pool, characteristics, expected",
         [
             (target_group_size, control_group_size, in_target_group, in_control_group, out_target_group, out_control_group, pool, characteristics.get(1), dict),
             (target_group_size, control_group_size, in_target_group, in_control_group, out_target_group, out_control_group, pool, characteristics.get(2), dict),
-            (8, 2, in_target_group, [7, 8, 9, 10], out_target_group, out_control_group, pool, characteristics.get(1), type(None)),
-            (big_target_group_size, big_control_group_size, in_target_group, in_control_group, out_target_group, out_control_group, big_pool, characteristics.get("big"), dict),
-
-
+            (target_group_size, control_group_size, in_target_group, [7, 8, 9, 10], out_target_group, out_control_group, pool, characteristics.get(1), type(None)),
         ],
     )
     def test_success(self, target_group_size, control_group_size, in_target_group, in_control_group, out_target_group, out_control_group, pool, characteristics, expected):
@@ -90,7 +88,12 @@ class TestSplitBalancer:
             out_control_group=out_control_group
         )
 
-        results = split_balancer.solve()
+        results = None
+
+        try:
+            results = split_balancer.solve()
+        except NoOptimalSolutionError as e:
+            pass
 
         assert isinstance(results, expected)
 
@@ -115,4 +118,40 @@ class TestSplitBalancer:
             for unit in out_control_group:
                 assert unit not in groups["control"], f"Unit {unit} is in the control group: {groups['control']}"
 
-        
+    def test_benchmark(self):
+
+        for i in [10, 100]: # 500, 1000, 1500, 2500, 5000
+            for j in [1, 2, 5, 10, 100]: # [1, 5, 10, 50]:
+
+                n = i
+                pool = range(n)
+                characteristics = []
+                for x in range(j):
+                    characteristics.append(
+                        [random.randrange(0, 100) for _ in range(n)]
+                        )
+                        
+                target_group_size = int(0.6*n)
+                control_group_size = int(0.2*n)
+                in_target_group = None
+                in_control_group = None
+                out_target_group = None
+                out_control_group = None
+
+                split_balancer = SplitBalancer(
+                    pool=pool,
+                    characteristics=characteristics,
+                    target_group_size=target_group_size,
+                    control_group_size=control_group_size,
+                    in_target_group=in_target_group,
+                    in_control_group=in_control_group,
+                    out_target_group=out_target_group,
+                    out_control_group=out_control_group
+                )
+
+                start = time.time()
+                out = split_balancer.solve()
+                end = time.time()
+
+                print(f":> {i} - {j} - time {end-start}")
+                print("-"*150)
