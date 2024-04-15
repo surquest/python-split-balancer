@@ -157,8 +157,10 @@ class SplitBalancer:
             sum(x[(i, groups[1])] for i in pool) == control_group_size
         )
 
-        # simple_char = self.simplify_characteristics(self.characteristics)
-        simple_char = self.characteristics[0]
+        simple_char = self.simplify_characteristics(self.characteristics)
+        #simple_char = self.characteristics[0]
+        #print(simple_char)
+        # print(":> shape:", simple_char.shape)
 
         if integer_only is True:
           const = 10000
@@ -318,20 +320,13 @@ class SplitBalancer:
             list: The simplified characteristics of the units.
         """
 
-        # Get an avarage of each characteristics
+
         matrix = np.array(characteristics)
         
+        # Standardize the characteristics between 0 and 1
+        std_matrix = (matrix - matrix.min()) / (matrix.max() - matrix.min())
+
         # Calculate the mean for each characteristic (column)
-        average_unit = np.mean(matrix, axis=1)
+        average_unit = np.mean(std_matrix, axis=0)
 
-        # Calculate the distance of each unit from the average unit
-        distances = np.linalg.norm(
-            np.transpose(matrix) - average_unit, 
-            axis=1
-        )
-
-        if do_rescale:
-            # Rescale the distances between 0 and scale
-            distances = np.multiply(distances, scale).astype(int)
-
-        return distances
+        return average_unit
