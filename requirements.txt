@@ -3,5 +3,5 @@ fastapi==0.110.1
 requests
 
 # surquest packages
-surquest-split-balancer>=0.0.4
+surquest-split-balancer>=0.0.6
 surquest-fastapi-utils==0.2.6
