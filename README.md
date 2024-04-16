@@ -73,13 +73,13 @@ docker build `
 
 docker build `
      --no-cache `
-     --tag python/instore/pmp-integration-proxy `
+     --tag surquest/app-split-balancer:latest `
      --file app.base.dockerfile `
      --target app .
 
 # Run the docker container
 docker run --rm -it `
-    --name pmp-integration-proxy `
+    --name split-balancer `
     -v "$(pwd):/opt/project" `
     -p 1010:8080 surquest/app-split-balancer:latest
 ```

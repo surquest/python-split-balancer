@@ -1,9 +1,13 @@
 
 """File main.py with FastAPI app"""
 import os
+import random
+import time
+import numpy as np
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 from fastapi import FastAPI, Request, Query, Body
+
 
 from surquest.utils.split_balancer import SplitBalancer
 # import surquest modules and objects
@@ -38,7 +42,10 @@ app.add_api_route(path=F"{PATH_PREFIX}/", endpoint=Route.get_documentation, incl
 app.add_api_route(path=PATH_PREFIX, endpoint=Route.get_favicon, include_in_schema=False)
 
 
-@app.post(F"{PATH_PREFIX}/split_balancer")
+@app.post(
+        F"{PATH_PREFIX}/balancer/split", 
+        tags=["Split Balancer"]
+    )
 def split(
     split: Split = Body(...),
 ):
@@ -52,6 +59,54 @@ def split(
         control_group_size=split.control_group_size,
         in_target_group=split.in_target_group,
         in_control_group=split.in_control_group,
+    )
+
+    results = model.solve()
+
+    return Response.set(
+        data=results
+    )
+
+@app.get(
+        F"{PATH_PREFIX}/benchmark/balancer/split", 
+        tags=["Benchmark Split Balancer"]
+    )
+def banchmark_split(
+    pool_size: int = Query(
+        ...,
+        alias="poolSize",
+        example=100,
+        description="The size of the pool.",
+        gt=1
+    )
+):
+    """
+    Test Split Balancer performance for a given pool size
+    """
+
+    pool = range(pool_size)
+    characteristics = []
+    for x in range(5):
+      characteristics.append(
+          [random.randrange(1, 10) for _ in range(pool_size)]
+          )
+
+    target_group_size = int(0.6*pool_size)
+    control_group_size = int(0.2*pool_size)
+    in_target_group = None
+    in_control_group = None
+    out_target_group = None
+    out_control_group = None
+
+    model = SplitBalancer(
+        pool=pool,
+        characteristics=characteristics,
+        target_group_size=target_group_size,
+        control_group_size=control_group_size,
+        in_target_group=in_target_group,
+        in_control_group=in_control_group,
+        out_target_group=out_target_group,
+        out_control_group=out_control_group
     )
 
     results = model.solve()

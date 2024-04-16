@@ -22,33 +22,39 @@ class Split(BaseModel):
 
     target_group_size: int = Field(
         ...,
+        alias="targetGroupSize",
         example=5, description="The size of the target group.", gt=0
     )
 
     control_group_size: int = Field(
         ...,
+        alias="controlGroupSize",
         example=3, description="The size of the control group.", gt=0
     )
 
     in_target_group: Optional[List] = Field(
         ...,
+        alias="inTargetGroup",
         example=[0, 1, 2],
         description="A list of the units that must be in the target group.",
     )
 
     in_control_group: Optional[List] = Field(
         ...,
+        alias="inControlGroup",
         example=[9],
         description="A list of the units that must be in the control group.",
     )
     out_target_group: Optional[List] = Field(
         ...,
+        alias="outTargetGroup",
         example=[8, 9],
         description="A list of the units that must be out of the target group.",
     )
 
     out_control_group: Optional[List] = Field(
         ...,
+        alias="outControlGroup",
         example=[4, 5],
         description="A list of the units that must be out of the control group.",
     )
