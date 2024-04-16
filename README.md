@@ -82,8 +82,4 @@ docker run --rm -it `
     --name pmp-integration-proxy `
     -v "$(pwd):/opt/project" `
     -p 1010:8080 surquest/app-split-balancer:latest
-
-docker run --rm -it `
-    --name pmp-integration-proxy `
-    -p 1010:8080 python/instore/pmp-integration-proxy
 ```
