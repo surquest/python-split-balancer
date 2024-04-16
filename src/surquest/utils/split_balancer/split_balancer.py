@@ -285,7 +285,7 @@ class SplitBalancer:
 
             # Get total avg characteristics
             avg["total"] = {
-                "cf": result.variable_values()[b],
+                "objectiveFunction": result.variable_values()[b],
                 "target": np.sum(
                     [
                         avg["characteristics"][ch]["target"]

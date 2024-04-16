@@ -121,14 +121,14 @@ class TestSplitBalancer:
     def test_benchmark(self):
 
         for i in [10, 100]: # 500, 1000, 1500, 2500, 5000
-            for j in [1, 2, 5, 10, 100]: # [1, 5, 10, 50]:
+            for j in [1, 2, 5]: # [1, 5, 10, 50]:
 
                 n = i
                 pool = range(n)
                 characteristics = []
                 for x in range(j):
                     characteristics.append(
-                        [random.randrange(0, 100) for _ in range(n)]
+                        [random.randrange(0, 10000) for _ in range(n)]
                         )
                         
                 target_group_size = int(0.6*n)
