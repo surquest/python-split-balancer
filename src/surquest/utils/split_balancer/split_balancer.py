@@ -1,7 +1,7 @@
 """
 
 """
-
+from typing import Optional
 from ortools.math_opt.python import mathopt
 from ortools.math_opt.python.ipc import remote_http_solve
 from datetime import datetime, timedelta
@@ -20,12 +20,10 @@ class SplitBalancer:
         characteristics: list,
         target_group_size: int,
         control_group_size: int,
-        in_target_group: list | None = None,
-        in_control_group: list | None = None,
-        out_target_group: list | None = None,
-        out_control_group: list | None = None
-        # model_type: str = "CP-SAT", # "SCIP", # "GLOP", #"CP-SAT",
-        # groups: list = ["target", "control", "unassigned"]
+        in_target_group: Optional[list] = None,
+        in_control_group: Optional[list] = None,
+        out_target_group: Optional[list] = None,
+        out_control_group: Optional[list] = None
     ):
         """Initializes the SplitBalancer class.
 
