@@ -132,7 +132,7 @@ def banchmark_split(
         example=100,
         description="The size of the pool.",
         gt=1,
-        le=5000
+        le=2000
     )
 ):
     """
