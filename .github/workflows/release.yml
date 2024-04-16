@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip pkginfo==1.10.0
-        pip install build
+        pip install build==1.2.1 twine==5.0.0
 
     - name: Build package
       run: python -m build
