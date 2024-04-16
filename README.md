@@ -1,6 +1,6 @@
 ![GitHub](https://img.shields.io/github/license/surquest/python-split-balancer?style=flat-square)
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/surquest/python-split-balancer/test.yml?branch=main&style=flat-square)
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/surquest/6e25c317000917840152a5e702e71963/raw/python-split-balancer.json&style=flat-square)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/surquest/373e1859cb547514516a8f22cd8f18a7/raw/python-split-balancer.json&style=flat-square)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/surquest-GCP-secret-assessor?style=flat-square)
 
 # Introduction
