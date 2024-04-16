@@ -87,7 +87,7 @@ def split(
     """
 
     # Raise out of free usage if the pool size is higher than 500
-    max_size = 2
+    max_size = 500
     if len(split.pool) > max_size:
        
        return Response.set(
