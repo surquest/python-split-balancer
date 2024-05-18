@@ -54,7 +54,7 @@ class TestSplitBalancer:
     def test_failure(self, target_group_size, control_group_size, in_target_group, in_control_group, out_target_group, out_control_group, pool, characteristics, expected):
 
         try:
-            split_balancer = SplitBalancer(
+            SplitBalancer(
                 pool=pool,
                 characteristics=characteristics,
                 target_group_size=target_group_size,
@@ -120,8 +120,8 @@ class TestSplitBalancer:
 
     def test_benchmark(self):
 
-        for i in [10, 100]: # 500, 1000, 1500, 2500, 5000
-            for j in [1, 2, 5]: # [1, 5, 10, 50]:
+        for i in [10, 100, 500, 1000, 2500, 5000]: # 500, 1000, 1500, 2500, 5000
+            for j in [1, 2, 5, 10, 50]: # [1, 5, 10, 50]:
 
                 n = i
                 pool = range(n)
@@ -150,7 +150,7 @@ class TestSplitBalancer:
                 )
 
                 start = time.time()
-                out = split_balancer.solve()
+                split_balancer.solve()
                 end = time.time()
 
                 print(f":> {i} - {j} - time {end-start}")

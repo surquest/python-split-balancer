@@ -116,16 +116,11 @@ class SplitBalancer:
         groups = self.groups
         target_group_size = self.target_group_size
         control_group_size = self.control_group_size
-        in_target_group = self.in_target_group
-        in_control_group = self.in_control_group
-        out_target_group = self.out_target_group
-        out_control_group = self.out_control_group
 
         # Create the optimization model
         model = mathopt.Model(name="split_balancer")
 
         # Define variables
-
         if integer_only is True:
             b = model.add_variable(is_integer=True, name="b")
         else:
@@ -156,9 +151,6 @@ class SplitBalancer:
         )
 
         simple_char = self.simplify_characteristics(self.characteristics)
-        #simple_char = self.characteristics[0]
-        #print(simple_char)
-        # print(":> shape:", simple_char.shape)
 
         if integer_only is True:
           const = 10000

@@ -22,7 +22,7 @@ Balancing Numeric Characteristics Across Two Groups
 
 ### Objective:
 
-Partition the units into two groups (Group A and Group B) of the specified size, ensuring maximum similarity between the groups. Similarity is measured by minimizing the sum of absolute differences in mean values for each characteristic across the two groups.
+Partition the set of units into two groups (Group A and Group B) of the specified size, ensuring maximum similarity between the groups. Similarity is measured by minimizing the sum of absolute differences in mean values for each characteristic across the two groups.
 
 ### Constraints:
 
@@ -35,6 +35,53 @@ Partition the units into two groups (Group A and Group B) of the specified size,
 * The mean values for each characteristic in Group A and Group B.
 * The sum of absolute differences in mean values for each characteristic across the two groups.
 
+
+## Alternative Math model for pairwise matching 
+
+$$
+\begin{equation} 
+z = \sum_{i=1}^{N-1}\sum_{j=2}^{N}c_{i,j} x_{i,j} \to MIN 
+\end{equation}
+$$
+
+$$
+\begin{equation} 
+\forall_{i} \sum_{j=i+1}^{N }x_{i,j} = a_{i}  \qquad i=1,2, ..., N-1
+\end{equation}
+$$
+
+$$
+\begin{equation} 
+\forall_{j} \sum_{i=1}^{j-1 }x_{i,j} = b_{j}  \qquad j=2, 3, ..., N
+\end{equation}
+$$
+
+$$
+\begin{equation} 
+\sum_{i=1}^{N-1}a_{i} =  T
+\end{equation}
+$$
+
+$$
+\begin{equation} 
+\sum_{j=2}^{N}b_{j} =  C
+\end{equation}
+$$
+
+| | |$_{2}$|$_{3}$|$_{4}$|...|...|$_{j}$|...|$_{N}$| | | |
+|--|--|--|--|--|--|--|--|--|--|--|--|--|
+| $_{1}$ |  | $x_{1,2}$ | $x_{1,3}$ | $x_{1,4}$ | ... |... | $x_{1,j}$ | ... | $x_{1,N}$ | = | $a_{1}$ |
+| $_{2}$ |  | - | $x_{2,3}$| $x_{2,4}$| ... | ... | $x_{2,j}$| ... | $x_{2,N}$ | = | $a_{2}$ |
+| $_{3}$ |  | - | - | $x_{3,4}$|...| ... | $x_{3,j}$| ... | $x_{3,N}$ | = | $a_{3}$ |
+| $_{4}$ |  | - | - | - | - | - | $x_{4,j}$| ... | $x_{4,N}$ | = | $a_{4}$ |
+| | | | | | | | | | | | | |
+| $_{i}$ |  | - | - | - | - | - | $x_{i,j}$ | ... | $x_{i,N}$| = | $a_{i}$ |
+| | | | | | | | | | | | | |
+| $_{N-1}$ |  | - | - | - | - | - | - | - | $x_{N-1,N}$| = | $a_{N-1}$ |
+| | | | | | | | | | | | = $T$ |
+| | | | | | | | | | | | | |
+| | | = | = | = | | | = | | = | | |
+| | | $b_{2}$ | $b_{3}$ | $b_{4}$ | ... |... | $b_{j}$ | ... | $b_{N}$ | | = $C$ |
 
 # Local development
 
