@@ -11,7 +11,7 @@ This project provides a Python package and REST API applications for dividing a 
 
 Balancing Numeric Characteristics Across Two Groups
 
-### Input:
+### Inputs
 
 * A set of units, where each unit possesses one or more numeric characteristics.
 * Desired size for each of the two groups.
@@ -20,16 +20,16 @@ Balancing Numeric Characteristics Across Two Groups
    - Specify units that must belong to a particular group (Group A or Group B).
    - Specify units that cannot belong to a particular group (Group A or Group B).
 
-### Objective:
+### Objectives
 
 Partition the set of units into two groups (Group A and Group B) of the specified size, ensuring maximum similarity between the groups. Similarity is measured by minimizing the sum of absolute differences in mean values for each characteristic across the two groups.
 
-### Constraints:
+### Constraints
 
 * Each unit is assigned to either Group A, Group B, or remains unassigned.
 * The final size of Group A and Group B must match the specified desired size.
 
-### Output:
+### Outputs
 
 * A list of units assigned to Group A and Group B.
 * The mean values for each characteristic in Group A and Group B.
